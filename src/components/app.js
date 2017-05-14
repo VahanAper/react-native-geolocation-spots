@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
-import { Screen, Spinner } from '@shoutem/ui';
+import { Screen, Spinner, Title } from '@shoutem/ui';
 import { stringify as queryString } from 'query-string';
 
 import { CLIENT_ID, CLIENT_SECRET } from './config';
-import styles from './styles';
 import RecomendationsMap from './recomendations_map';
 import { OverlayTopics, BottomTopics } from './topics';
 
@@ -12,16 +11,6 @@ const API_DEBOUNCE_TIME = 2000; // 2 seconds
 const Console = console;
 
 class App extends Component {
-  static state = {
-    mapRegion: null,
-    gpsAccuracy: null,
-    recomendations: [],
-    lookingFor: null,
-    headerLocation: null,
-    last4sqCall: null,
-  }
-  static watchID = null;
-
   constructor(props) {
     super(props);
 
@@ -29,17 +18,31 @@ class App extends Component {
     this.onTopicSelect = this.onTopicSelect.bind(this);
   }
 
-  componentWillMount() {
-    this.watchID = navigator.geolocation.watchPosition((position) => {
-      const region = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        latitudeDelta: 0.00922 * 1.5,
-        longitudeDelta: 0.00421 * 1.5,
-      };
+  state = {
+    mapRegion: null,
+    gpsAccuracy: null,
+    recomendations: [],
+    lookingFor: null,
+    headerLocation: null,
+    last4sqCall: null,
+  }
 
-      this.onRegionChange(region, position.coords.accurancy);
-    });
+  componentWillMount() {
+    this.watchID = navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const region = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          latitudeDelta: 0.00922 * 1.5,
+          longitudeDelta: 0.00421 * 1.5,
+        };
+        this.onRegionChange(region, position.coords.accuracy);
+      },
+      (error) => {
+        Console.log('error', error);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 },
+    );
   }
 
   componentWillUnmount() {
@@ -60,6 +63,8 @@ class App extends Component {
     this.setState({ lookingFor });
   }
 
+  watchID = null;
+
   fetchVenues(region, lookingFor) {
     if (!this.shouldFetchVenues(lookingFor)) return;
 
@@ -72,7 +77,7 @@ class App extends Component {
         if (json.response.groups) {
           this.setState({
             recomendations: json.response.groups.reduce((all, g) => all.concat(g ? g.items : []), []),
-            headerLocation: json.res.headerLocation,
+            headerLocation: json.response.headerLocation,
             last4sqCall: new Date(),
           });
         }
@@ -101,10 +106,13 @@ class App extends Component {
   }
 
   render() {
-    const { mapRegion, lookingFor } = this.state;
+    const { mapRegion, lookingFor, headerLocation } = this.state;
     if (mapRegion) {
       return (
         <Screen>
+          <Title styleName="h-center multiline" style={{ backgroundColor: 'rgba(255, 255, 255, .7)', paddingTop: 20 }}>
+            {lookingFor ? `${lookingFor} in` : ''} {headerLocation}
+          </Title>
           <RecomendationsMap {...this.state} onRegionChange={this.onRegionChange} />
           {!lookingFor ? <OverlayTopics onTopicSelect={this.onTopicSelect} /> : <BottomTopics onTopicSelect={this.onTopicSelect} />}
         </Screen>
@@ -112,7 +120,12 @@ class App extends Component {
     }
 
     return (
-      <Screen style={styles.centered}>
+      <Screen
+        style={{
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <Spinner styleName="large" />
       </Screen>
     );

@@ -16,9 +16,9 @@ class Recomendation extends Component {
 
     return (
       <MapView.Marker
-        coorditane={{
+        coordinate={{
           latitude: venue.location.lat,
-          long: venue.location.lng,
+          longitude: venue.location.lng,
         }}
       >
         <MapView.Callout>
@@ -26,7 +26,7 @@ class Recomendation extends Component {
             <Image styleName="medium-wide" source={{ uri: this.photo }} />
             <View styleName="content">
               <Subtitle>{venue.name}</Subtitle>
-              <Caption>{tips ? tips[0] : ''}</Caption>
+              <Caption>{tips ? tips[0].text : ''}</Caption>
             </View>
           </Card>
         </MapView.Callout>
